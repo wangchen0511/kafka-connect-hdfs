@@ -508,26 +508,8 @@ public class TopicPartitionWriter {
   }
 
   private void writeRecord(SinkRecord record) throws IOException {
-    long expectedOffset = offset + recordCounter;
     if (offset == -1) {
       offset = record.kafkaOffset();
-    } else if (record.kafkaOffset() != expectedOffset) {
-      // Currently it's possible to see stale data with the wrong offset after a rebalance when you
-      // rewind, which we do since we manage our own offsets. See KAFKA-2894.
-      if (!sawInvalidOffset) {
-        log.info(
-            "Ignoring stale out-of-order record in {}-{}. Has offset {} instead of expected offset {}",
-            record.topic(), record.kafkaPartition(), record.kafkaOffset(), expectedOffset);
-      }
-      sawInvalidOffset = true;
-      return;
-    }
-
-    if (sawInvalidOffset) {
-      log.info(
-          "Recovered from stale out-of-order records in {}-{} with offset {}",
-          record.topic(), record.kafkaPartition(), expectedOffset);
-      sawInvalidOffset = false;
     }
 
     String encodedPartition = partitioner.encodePartition(record);
